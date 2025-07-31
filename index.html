@@ -9,10 +9,12 @@
 <body>
   <script>
     window.onload = () => {
-      link.download = "text.txt";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+        const link = document.createElement("a");
+        link.href = "text.txt";
+        link.download = "text.txt";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
   </script>
   <header>
